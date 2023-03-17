@@ -1,0 +1,202 @@
+﻿@model List<Arch_lab.Models.ViewModel.EmailViewModel>
+@{
+    ViewData["Title"] = "Main Page";
+}
+
+
+<h4 class="mb-3 text-muted">Создание письма</h4>
+<select name="certificates" class="form-select mb-3">
+    <option>Без сертификата</option>
+    @if(@ViewBag.certs is not null)
+    {
+        @foreach (var cert in @ViewBag.certs)
+        {
+
+            <option>@cert.CertName</option>
+        }
+    }
+</select>
+
+
+<form id="createEmailForm">
+    <div class-"mb-3">
+        <label class="form-label">Пользователь</label>
+        <input name="sender" class="form-control" value="@ViewBag.UserName" readonly />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Получатель</label>
+        <input name="receiver" type="text" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Текст письма</label>
+        <textarea name="emailBody" type="text" class="form-control" rows="3"></textarea>
+    </div>
+    <button id="createEmail" class="btn btn-primary">Отправить письмо</button>
+
+</form>
+
+<h4 class="mb-3 text-muted">Полученные письма</h4>
+<div class="emailList">
+    @if (Model is not null)
+    {
+        @foreach (var email in Model)
+        {
+            <div class="mb-3">
+                <label class="form-label">@email.Sender</label>
+                <label class="form-label">|</label>
+                <label class="form-label">@email.Email</label>
+                <label class="form-label">|</label>
+                <label class="form-label">@email.Dated</label>
+                <label class="form-label">|</label>
+                <label class="form-label">@email.EmailStatus</label>
+                @if (email.EmailStatus == Arch_lab.Models.Enum.EmailStatus.Sign) {
+                    <input type="radio" class="form-switch" name="verifyRadio" value="@email.EmailId"/>
+                }
+            </div>
+        }
+        <button id="verifyEmail" class="btn btn-primary">Верифицировать</button>
+
+    }
+</div>
+
+
+<h4 class="mb-3 text-muted">Создание сертификата</h4>
+<form id="createCertForm">
+    <label class="form-label">Имя сертификата</label>
+    <input type="text" name ="certName" class="form-control"/>
+
+    <button id="createCert" class="btn btn-primary">Создать сертификат</button>
+
+</form>
+@section Scripts
+{
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/modal.js"></script>
+    <script>
+
+        $('#createEmail').on('click',function(e) {
+            e.preventDefault();
+            $.ajax({
+                type:'POST',
+                url:'@Url.Action("CreateEmail","Email")',
+                data: $('#createEmailForm').serialize() + '&CertName=' + $('select[name="certificates"]').val(),
+                success: function (response) {
+                    Swal.fire({
+                        title:'Информация',
+                        text: response.description,
+                        icon: 'success',
+                        confirmButtonText: 'Окей'
+                    })
+                },
+                error: function (response) {
+                    Swal.fire({
+                        title: 'Информация',
+                        text: response.responseJSON.description,
+                        icon: 'error',
+                        confirmButtonText: 'Окей'
+                    })
+                }
+            })
+        });
+
+
+
+    </script>
+
+    <script>
+
+        $('#verifyEmail').on('click', function(e) {
+            if ($('input[name="verifyRadio"]').is(':checked')) {
+                e.preventDefault();
+                $.ajax({
+                    type: 'POST',
+                    url: '@Url.Action("VerifyEmail","Email")',
+                    data: 'CertName=' + $('select[name="certificates"]').val() + '&EmailId=' + $('input[name="verifyRadio"]:checked').val(),
+                    success: function (response) {
+                        Swal.fire({
+                            title: 'Информация',
+                            text: response.description,
+                            icon: 'success',
+                            confirmButtonText: 'Окей'
+                        })
+                    },
+                    error: function (response) {
+                        Swal.fire({
+                            title: 'Информация',
+                            text: response.responseJSON.description,
+                            icon: 'error',
+                            confirmButtonText: 'Окей'
+                        })
+                    }
+                })
+                //alert($('input[name="verifyRadio"]:checked').val());
+            }
+            else {
+               Swal.fire({
+                        title: 'Информация',
+                        text: 'Не выбрано письмо',
+                        icon: 'error',
+                        confirmButtonText: 'Окей'
+                    });
+            }
+            $('input[name="verifyRadio"]').prop('checked', false);
+        });
+
+        //$('#verifyEmail').on('click', function (e) {
+        //    e.preventDefault();
+        //    $.ajax({
+        //        type: 'POST',
+        //        url: '@Url.Action("VerifyEmail","Email")',
+        //        data: $('#createEmailForm').serialize(),
+        //        success: function (response) {
+        //            Swal.fire({
+        //                title: 'Информация',
+        //                text: response.description,
+        //                icon: 'success',
+        //                confirmButtonText: 'Окей'
+        //            })
+        //        },
+        //        error: function (response) {
+        //            Swal.fire({
+        //                title: 'Информация',
+        //                text: response.responseJSON.description,
+        //                icon: 'error',
+        //                confirmButtonText: 'Окей'
+        //            })
+        //        }
+        //    })
+        //});
+
+    </script>
+
+    <script>
+
+        $('#createCert').on('click', function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("CreateCert","Email")',
+                data: $('#createCertForm').serialize(),
+                success: function (response) {
+                    Swal.fire({
+                        title: 'Информация',
+                        text: 'Сертификат создан',
+                        icon: 'success',
+                        confirmButtonText: 'Окей'
+                    })
+                },
+                error: function (response) {
+                    Swal.fire({
+                        title: 'Информация',
+                        text: response.responseJSON.description,
+                        icon: 'error',
+                        confirmButtonText: 'Окей'
+                    })
+                }
+            })
+        });
+
+
+
+    </script>
+}
